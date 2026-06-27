@@ -1,0 +1,152 @@
+========================================================
+     PROJECT ARCHITECTURE — Link Quality CSV Dashboard
+========================================================
+
+--------------------------------------------------------
+ARCHITECTURAL STYLE
+--------------------------------------------------------
+This project follows a simple Single-Class MVC-Lite pattern:
+  - The single class CsvDashboard acts as both the
+    Controller and View, which is typical for small JavaFX
+    utility applications.
+  - Data (Model) is represented by plain Java objects
+    (Maps, Lists, and the inner ARResult class).
+
+--------------------------------------------------------
+HIGH-LEVEL ARCHITECTURE DIAGRAM
+--------------------------------------------------------
+
+  [ User ] 
+      |
+      | clicks File Menu
+      v
+  [ MenuBar (JavaFX) ]
+      |
+      | triggers file chooser
+      v
+  [ FileChooser Dialog ]
+      |
+      | returns File object
+      v
+  [ Parser Methods ]
+      |         |         |
+      v         v         v
+  parseCluster  parseCP  parseAR
+  Csv()         Csv()    Csv()
+      |         |         |
+      v         v         v
+  Map<>      Map<>     List<ARResult>
+      |         |         |
+      v         v         v
+  [ Chart / Heatmap Builder Methods ]
+      |
+      v
+  [ TabPane — displays results in tabs ]
+      |
+      v
+  [ JavaFX Scene rendered in Stage (Window) ]
+
+--------------------------------------------------------
+LAYER BREAKDOWN
+--------------------------------------------------------
+
+1. ENTRY POINT
+   ─────────────
+   main() → launch() → start(Stage)
+   JavaFX lifecycle is initiated via Application.launch().
+
+2. UI LAYOUT LAYER
+   ─────────────────
+   VBox (root)
+   ├── MenuBar
+   │   └── Menu: "File"
+   │       ├── MenuItem: Open Cluster File
+   │       ├── MenuItem: Open Change Point File
+   │       └── MenuItem: Open AR Model File
+   └── TabPane
+       ├── Tab: Chart 1 (varies by file type)
+       └── Tab: Chart 2 (if applicable)
+
+3. FILE LOADING LAYER
+   ────────────────────
+   loadFile(title, filter)
+     → Uses JavaFX FileChooser
+     → Returns java.io.File object
+     → Default directory: ../LinkAnalyzerProject/output
+
+4. PARSING LAYER
+   ─────────────
+   Each file type has its own parser:
+   
+   a) parseClusterCsv(File)
+      - Reads lines, splits by comma
+      - Builds Map<String, Integer> of cluster label → count
+   
+   b) parseChangePointCsv(File)
+      - Reads lines, splits by comma
+      - Counts semicolons in column 2 to get CP count per series
+      - Builds TreeMap<Integer, Integer> (sorted by series index)
+   
+   c) parseArCsv(File)
+      - Reads lines, parses residual variance and coefficients
+      - Splits coefficients by semicolons
+      - Builds List<ARResult> (inner class with fields)
+
+5. VISUALIZATION LAYER
+   ─────────────────────
+   a) createPieChart(Map)         → PieChart
+   b) createBarChart(Map)         → BarChart<String, Number>
+   c) createChangePointBarChart() → BarChart<String, Number>
+   d) createResidVarHistogram()   → BarChart<String, Number>
+      (10-bin histogram computed from residual variance values)
+   e) createCoefficientHeatMap()  → ScrollPane wrapping GridPane
+      - GridPane with colored Rectangles
+      - Color scale: Blue (negative) → White (zero) → Red (positive)
+      - Tooltips on each cell showing exact value
+
+6. COLOR UTILITY
+   ───────────────
+   getColorForValue(value, min, max)
+     → Uses JavaFX Color.interpolate() for smooth gradients
+     → Negative: WHITE → BLUE
+     → Positive: WHITE → RED
+
+7. ERROR HANDLING
+   ─────────────────
+   handleError(Exception)
+     → Prints to stderr
+     → TODO: Replace with JavaFX Alert dialog
+
+--------------------------------------------------------
+KEY DATA STRUCTURES
+--------------------------------------------------------
+
+  Map<String, Integer>   → Cluster label counts
+  TreeMap<Integer, Int>  → Change point counts (sorted)
+  List<ARResult>         → AR model results list
+
+  ARResult (inner class):
+    int     seriesIndex
+    double  residVar
+    double[] coeffs
+
+--------------------------------------------------------
+DESIGN DECISIONS
+--------------------------------------------------------
+
+1. Single class design — appropriate for a utility tool
+   of this scope. Easy to read and maintain.
+
+2. TabPane cleared on each file open — prevents stale
+   charts from mixing with new data.
+
+3. TreeMap for change points — ensures series are always
+   displayed in sorted index order on the chart.
+
+4. ScrollPane wrapping heatmap — handles datasets with
+   many series without clipping the UI.
+
+5. Color interpolation — uses JavaFX built-in interpolate
+   instead of manual RGB math, keeping code clean.
+
+========================================================

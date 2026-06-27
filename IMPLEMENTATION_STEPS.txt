@@ -1,0 +1,251 @@
+========================================================
+    IMPLEMENTATION STEPS — Link Quality CSV Dashboard
+========================================================
+
+This guide walks you through setting up, building, and
+running the CsvDashboard project from scratch.
+
+--------------------------------------------------------
+STEP 1 — PREREQUISITES
+--------------------------------------------------------
+
+Make sure the following are installed on your system:
+
+  ✔ Java JDK 11 or higher
+       Check: java -version
+       Download: https://adoptium.net/
+
+  ✔ Apache Maven 3.6 or higher
+       Check: mvn -version
+       Download: https://maven.apache.org/download.cgi
+
+  ✔ Git (for cloning / version control)
+       Check: git --version
+       Download: https://git-scm.com/
+
+  NOTE: JavaFX does NOT need to be installed separately.
+  It will be automatically downloaded by Maven via the
+  OpenJFX dependency declared in pom.xml.
+
+--------------------------------------------------------
+STEP 2 — CREATE MAVEN PROJECT STRUCTURE
+--------------------------------------------------------
+
+Option A — Generate with Maven archetype:
+  mvn archetype:generate \
+    -DgroupId=dashboard \
+    -DartifactId=CsvDashboardMaven \
+    -DarchetypeArtifactId=maven-archetype-quickstart \
+    -DinteractiveMode=false
+
+Option B — Create manually:
+  Create the following folder structure:
+
+  CsvDashboardMaven/
+  ├── pom.xml
+  └── src/
+      └── main/
+          └── java/
+              └── dashboard/
+                  └── CsvDashboard.java
+
+--------------------------------------------------------
+STEP 3 — SET UP pom.xml
+--------------------------------------------------------
+
+Create or replace pom.xml with the following content:
+
+-------- pom.xml ----------------------------------------
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>dashboard</groupId>
+  <artifactId>CsvDashboardMaven</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <javafx.version>17.0.2</javafx.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+      <version>${javafx.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-fxml</artifactId>
+      <version>${javafx.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-maven-plugin</artifactId>
+        <version>0.0.8</version>
+        <configuration>
+          <mainClass>dashboard.CsvDashboard</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
+
+---------------------------------------------------------
+
+  Key points:
+  - groupId matches package name: dashboard
+  - mainClass points to: dashboard.CsvDashboard
+  - javafx-maven-plugin enables: mvn javafx:run
+
+--------------------------------------------------------
+STEP 4 — ADD THE SOURCE FILE
+--------------------------------------------------------
+
+  Place CsvDashboard.java at:
+    src/main/java/dashboard/CsvDashboard.java
+
+  The file must start with:
+    package dashboard;
+
+  And the class must be:
+    public class CsvDashboard extends Application { ... }
+
+--------------------------------------------------------
+STEP 5 — PREPARE SAMPLE CSV FILES
+--------------------------------------------------------
+
+Create sample CSV files to test the application.
+
+a) clusters_sample.csv
+   ----------------------
+   series_index,cluster_label
+   0,A
+   1,B
+   2,A
+   3,C
+   4,B
+   5,A
+
+b) cp_sample.csv
+   ---------------
+   series_index,change_points
+   0,12;45;78
+   1,
+   2,33;67
+   3,5
+
+c) ar_sample.csv
+   ---------------
+   series_index,residual_variance,coefficients
+   0,0.042,0.81;-0.23;0.10
+   1,0.093,0.55;0.12;-0.08
+   2,0.017,0.92;-0.45;0.31
+   3,0.150,0.30;0.20;0.05
+
+  Tip: Store these in a folder called:
+    ../LinkAnalyzerProject/output/
+  (The file chooser opens this directory by default.)
+  OR just navigate manually in the file chooser dialog.
+
+--------------------------------------------------------
+STEP 6 — BUILD THE PROJECT
+--------------------------------------------------------
+
+  Navigate to the project root (where pom.xml is):
+    cd CsvDashboardMaven
+
+  Clean and compile:
+    mvn clean compile
+
+  Install (build JAR):
+    mvn clean install
+
+  If you see "BUILD SUCCESS" — you're ready to run.
+
+  Common issues:
+  - "Java version mismatch" → Set JAVA_HOME to JDK 11+
+  - "Plugin not found" → Check internet connection (Maven downloads dependencies)
+  - "Package does not exist" → Verify pom.xml has javafx-controls dependency
+
+--------------------------------------------------------
+STEP 7 — RUN THE APPLICATION
+--------------------------------------------------------
+
+  Using Maven JavaFX plugin:
+    mvn javafx:run
+
+  A window titled "Link Quality CSV Dashboard" will open.
+
+  Manual run (after mvn install):
+    java --module-path /path/to/javafx-sdk/lib \
+         --add-modules javafx.controls,javafx.fxml \
+         -cp target/CsvDashboardMaven-1.0-SNAPSHOT.jar \
+         dashboard.CsvDashboard
+
+  (Using mvn javafx:run is recommended — it handles module path automatically.)
+
+--------------------------------------------------------
+STEP 8 — USE THE APPLICATION
+--------------------------------------------------------
+
+  1. Click "File" in the menu bar
+  2. Choose a file type:
+       - "Open Cluster File..."       → select clusters_*.csv
+       - "Open Change Point (CP) File..." → select cp_*.csv
+       - "Open AR Model File..."      → select ar_*.csv
+  3. Navigate to your CSV file in the dialog
+  4. Click "Open"
+  5. Charts appear instantly in the tabs
+  6. Hover over heatmap cells to see coefficient values
+
+--------------------------------------------------------
+STEP 9 — PUSH TO GITHUB
+--------------------------------------------------------
+
+  1. Initialize git:
+       git init
+
+  2. Add all files:
+       git add .
+
+  3. Commit:
+       git commit -m "Initial commit: CsvDashboard JavaFX project"
+
+  4. Create repo on GitHub:
+       Go to https://github.com/new
+       Name it: CsvDashboardMaven
+
+  5. Push:
+       git remote add origin https://github.com/your-username/CsvDashboardMaven.git
+       git branch -M main
+       git push -u origin main
+
+--------------------------------------------------------
+STEP 10 — RECOMMENDED .gitignore
+--------------------------------------------------------
+
+Create a .gitignore file in the project root:
+
+  target/
+  *.class
+  *.jar
+  .idea/
+  *.iml
+  .vscode/
+  .DS_Store
+
+This keeps compiled outputs and IDE files out of the repo.
+
+========================================================

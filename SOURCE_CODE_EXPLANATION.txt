@@ -1,0 +1,251 @@
+========================================================
+    SOURCE CODE EXPLANATION — Link Quality CSV Dashboard
+========================================================
+
+File: CsvDashboard.java
+Package: dashboard
+Class: CsvDashboard extends javafx.application.Application
+
+--------------------------------------------------------
+SECTION 1 — IMPORTS
+--------------------------------------------------------
+
+Standard Java I/O:
+  BufferedReader, File, FileReader
+    → Used to read CSV files line by line efficiently
+
+Java Collections:
+  ArrayList   → Stores list of AR results
+  HashMap     → Stores cluster label counts (unordered)
+  List, Map   → Generic interfaces
+  TreeMap     → Stores change point counts (sorted by key)
+
+JavaFX (UI framework):
+  Application       → Base class for all JavaFX apps
+  FXCollections     → Factory for ObservableList (needed by charts)
+  ObservableList    → JavaFX-aware list for chart data binding
+  Insets            → Padding/margin values
+  Node              → Base type for all UI elements
+  Scene             → The window content container
+  BarChart          → Bar chart widget
+  CategoryAxis      → String-valued X-axis for charts
+  NumberAxis        → Numeric Y-axis for charts
+  PieChart          → Pie chart widget
+  XYChart           → Parent type for bar/line charts
+  Label             → Text display element
+  Menu, MenuBar, MenuItem → Top menu bar components
+  ScrollPane        → Scrollable wrapper container
+  Tab, TabPane      → Tabbed panel UI
+  TabClosingPolicy  → Enum to prevent tab close buttons
+  Tooltip           → Hover tooltip for UI elements
+  GridPane          → Grid layout (rows x columns)
+  Priority          → Layout sizing priority enum
+  VBox              → Vertical stacking layout
+  Color             → JavaFX color (supports interpolation)
+  Rectangle         → Colored rectangle shape for heatmap
+  FileChooser       → Native OS file picker dialog
+  Stage             → The application window
+
+--------------------------------------------------------
+SECTION 2 — CLASS FIELDS
+--------------------------------------------------------
+
+  private TabPane tabPane;
+    → The central tabbed panel. Charts are added here as tabs.
+
+  private Stage primaryStage;
+    → Reference to the main window (needed by FileChooser).
+
+--------------------------------------------------------
+SECTION 3 — start(Stage primaryStage)
+--------------------------------------------------------
+
+The JavaFX entry point, called automatically after launch().
+
+Step-by-step:
+  1. Saves reference to primaryStage (for FileChooser use)
+  2. Sets window title to "Link Quality CSV Dashboard"
+  3. Creates MenuBar via createMenuBar()
+  4. Creates TabPane with UNAVAILABLE close policy
+     (tabs cannot be closed by user)
+  5. Sets VBox.setVgrow(tabPane, Priority.ALWAYS)
+     → TabPane expands to fill remaining vertical space
+  6. Builds root VBox with menuBar + tabPane
+  7. Creates Scene (800x700px) and attaches to stage
+  8. Calls primaryStage.show() to display the window
+
+--------------------------------------------------------
+SECTION 4 — createMenuBar()
+--------------------------------------------------------
+
+Builds the top menu bar with three file-open actions.
+
+  "File" → Menu
+    ├── "Open Cluster File..."
+    │     → Calls loadFile() with filter "clusters_*.csv"
+    │     → If file returned, calls processClusterFile()
+    │
+    ├── "Open Change Point (CP) File..."
+    │     → Calls loadFile() with filter "cp_*.csv"
+    │     → If file returned, calls processChangePointFile()
+    │
+    └── "Open AR Model File..."
+          → Calls loadFile() with filter "ar_*.csv"
+          → If file returned, calls processArFile()
+
+Each MenuItem uses a lambda setOnAction(e -> { ... })
+for concise event handling.
+
+--------------------------------------------------------
+SECTION 5 — loadFile(title, filter)
+--------------------------------------------------------
+
+  FileChooser fileChooser = new FileChooser();
+    → Creates native OS file picker
+
+  fileChooser.setInitialDirectory(new File("../LinkAnalyzerProject/output"))
+    → Opens the picker in the expected output folder by default
+
+  return fileChooser.showOpenDialog(primaryStage);
+    → Shows the dialog (blocks until user picks or cancels)
+    → Returns selected File, or null if cancelled
+
+--------------------------------------------------------
+SECTION 6 — CLUSTER FILE PROCESSING
+--------------------------------------------------------
+
+processClusterFile(File file)
+  → Calls parseClusterCsv() to get label counts
+  → Calls createPieChart() and createBarChart()
+  → Clears tabPane and adds two new tabs
+
+parseClusterCsv(File file)
+  → Skips first line (header)
+  → Splits each line by comma → parts[1] is the cluster label
+  → Builds HashMap: label → count using getOrDefault()
+  → Returns the map
+
+createPieChart(Map<String, Integer> data)
+  → Converts map entries to PieChart.Data objects
+  → Wraps in ObservableList
+  → Returns a PieChart
+
+createBarChart(Map<String, Integer> data)
+  → Creates CategoryAxis (x) and NumberAxis (y)
+  → Creates BarChart with one XYChart.Series
+  → Adds one Data point per cluster
+  → Legend hidden (setLegendVisible(false))
+
+--------------------------------------------------------
+SECTION 7 — CHANGE POINT FILE PROCESSING
+--------------------------------------------------------
+
+processChangePointFile(File file)
+  → Calls parseChangePointCsv()
+  → Calls createChangePointBarChart()
+  → Clears tabPane and adds one tab
+
+parseChangePointCsv(File file)
+  → Skips header
+  → For each line:
+      - parts[0] = series index (parsed as int)
+      - parts[1] = semicolon-separated change point list
+      - Count = number of semicolons + 1 (split length)
+      - If empty, count = 0
+  → Returns TreeMap<Integer, Integer> (auto-sorted by index)
+
+createChangePointBarChart(Map<Integer, Integer> data)
+  → Same structure as cluster bar chart
+  → X-axis label: "Series Index"
+  → Y-axis label: "Number of Change Points"
+
+--------------------------------------------------------
+SECTION 8 — AR MODEL FILE PROCESSING
+--------------------------------------------------------
+
+Inner class ARResult:
+  int     seriesIndex   → which series this belongs to
+  double  residVar      → residual variance of the model
+  double[] coeffs       → AR model coefficients array
+
+processArFile(File file)
+  → Calls parseArCsv() → List<ARResult>
+  → Calls createResidVarHistogram() → BarChart
+  → Calls createCoefficientHeatMap() → Node (ScrollPane)
+  → Adds two tabs: "Residual Variance" and "Coefficient Heatmap"
+
+parseArCsv(File file)
+  → Skips header
+  → parts[0] = series index
+  → parts[1] = residual variance (parseDouble)
+  → parts[2] = coefficients string, split by ";"
+  → Each coefficient parsed to double[] array
+  → Builds and returns List<ARResult>
+
+createResidVarHistogram(List<ARResult> data)
+  → Finds max variance value across all results
+  → Creates 10 equal-width bins
+  → For each ARResult, calculates bin index:
+      bin = floor((residVar / maxVar) * 9)
+  → Increments bins[] counter
+  → Builds BarChart with bin range labels on X-axis
+  → Returns chart
+
+createCoefficientHeatMap(List<ARResult> data)
+  → Creates GridPane (1px gap between cells)
+  → Finds maximum absolute coefficient value (maxAbs)
+     for symmetric color scaling
+  → Adds column headers: "Coeff 1", "Coeff 2", ...
+  → For each ARResult row:
+      - Adds row label: "Series N"
+      - For each coefficient:
+          * Gets interpolated Color via getColorForValue()
+          * Creates 50x20 Rectangle with that color
+          * Black stroke border
+          * Tooltip showing value to 4 decimal places
+          * Adds to GridPane at (col+1, row+1)
+  → Wraps GridPane in ScrollPane
+  → Returns ScrollPane
+
+--------------------------------------------------------
+SECTION 9 — COLOR UTILITY
+--------------------------------------------------------
+
+getColorForValue(double value, double min, double max)
+  → Clamps value to [min, max] range
+  → If value < 0:
+      perc = value / min  (e.g. -0.5 / -1.0 = 0.5)
+      return WHITE.interpolate(BLUE, perc)
+      → Result: deeper blue for more negative values
+  → If value >= 0:
+      perc = value / max  (e.g. 0.5 / 1.0 = 0.5)
+      return WHITE.interpolate(RED, perc)
+      → Result: deeper red for more positive values
+
+Color.interpolate() is a JavaFX method that smoothly
+blends two colors by a percentage (0.0 to 1.0).
+
+--------------------------------------------------------
+SECTION 10 — ERROR HANDLING
+--------------------------------------------------------
+
+handleError(Exception ex)
+  → Prints error message to System.err
+  → Prints full stack trace
+  → Note: Currently no user-facing alert dialog
+    (marked as TODO in the source code)
+
+--------------------------------------------------------
+SECTION 11 — main()
+--------------------------------------------------------
+
+  public static void main(String[] args) {
+      launch(args);
+  }
+
+launch() is inherited from Application. It:
+  1. Initializes the JavaFX runtime
+  2. Creates an instance of CsvDashboard
+  3. Calls start(Stage) on the JavaFX Application Thread
+
+========================================================

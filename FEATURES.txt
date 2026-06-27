@@ -1,0 +1,113 @@
+========================================================
+           FEATURES — Link Quality CSV Dashboard
+========================================================
+
+--------------------------------------------------------
+CORE FEATURES
+--------------------------------------------------------
+
+1. FILE MENU WITH NATIVE FILE CHOOSER
+   ─────────────────────────────────────
+   - "File" menu in the top menubar with three options
+   - Opens native OS file chooser dialog (JavaFX FileChooser)
+   - Extension filters applied per file type:
+       * Cluster files   → clusters_*.csv
+       * Change Point    → cp_*.csv
+       * AR Model        → ar_*.csv
+   - Default directory points to output folder of the
+     linked analysis project
+
+2. CLUSTER FILE VISUALIZATION
+   ──────────────────────────────
+   File: clusters_*.csv
+   Format: series_index, cluster_label
+
+   Charts Generated:
+   a) PIE CHART
+      - Shows proportional distribution of each cluster label
+      - Each slice labeled with "Cluster X" and count
+      - Built using JavaFX PieChart
+
+   b) BAR CHART
+      - X-axis: Cluster labels
+      - Y-axis: Number of series in each cluster
+      - Clean legend-free view for quick comparison
+
+3. CHANGE POINT FILE VISUALIZATION
+   ──────────────────────────────────
+   File: cp_*.csv
+   Format: series_index, change_points (semicolon-separated)
+
+   Charts Generated:
+   a) BAR CHART (Change Point Counts)
+      - X-axis: Series index (sorted numerically via TreeMap)
+      - Y-axis: Number of change points detected per series
+      - Handles empty change point fields (0 count)
+
+4. AR MODEL FILE VISUALIZATION
+   ──────────────────────────────
+   File: ar_*.csv
+   Format: series_index, residual_variance, coefficients (;-separated)
+
+   Charts Generated:
+   a) RESIDUAL VARIANCE HISTOGRAM
+      - Divides variance values into 10 equal bins
+      - X-axis: Bin ranges (formatted as decimals)
+      - Y-axis: Count of series in each bin
+      - Shows distribution of model fit quality
+
+   b) COEFFICIENT HEATMAP
+      - Grid layout: rows = series, columns = coefficients
+      - Each cell is a colored Rectangle (50x20px)
+      - Color scale:
+          Blue  → strong negative value
+          White → zero / near-zero
+          Red   → strong positive value
+      - Symmetric scale: min = -maxAbs, max = +maxAbs
+      - Row labels: "Series 0", "Series 1", ...
+      - Column labels: "Coeff 1", "Coeff 2", ...
+      - Scrollable via ScrollPane for large datasets
+
+5. INTERACTIVE TOOLTIPS
+   ───────────────────────
+   - Each heatmap cell has a Tooltip
+   - Hover over any cell to see the exact coefficient value
+     formatted to 4 decimal places (e.g., 0.8123)
+
+6. TABBED INTERFACE
+   ───────────────────
+   - JavaFX TabPane with non-closable tabs
+   - Tabs are cleared and refreshed on every new file open
+   - Each chart type appears in its own clearly labeled tab:
+       * "Pie Chart"
+       * "Bar Chart"
+       * "Change Point Counts"
+       * "Residual Variance"
+       * "Coefficient Heatmap"
+
+7. RESPONSIVE LAYOUT
+   ─────────────────────
+   - VBox root layout with Priority.ALWAYS on TabPane
+   - Charts fill available window space automatically
+   - Window default size: 800 x 700 px (resizable)
+
+8. ERROR HANDLING
+   ──────────────────
+   - Try-catch wraps all file parsing logic
+   - Errors are printed to stderr with stack trace
+   - Application does not crash on bad file input
+   - (TODO: JavaFX Alert dialog for user-facing errors)
+
+--------------------------------------------------------
+PLANNED / TODO FEATURES
+--------------------------------------------------------
+
+  [ ] JavaFX Alert dialog for file parsing errors
+  [ ] Export charts as PNG images
+  [ ] Support drag-and-drop file loading
+  [ ] Dark mode / theme switcher
+  [ ] Multi-file comparison tabs (keep old tabs open)
+  [ ] Table view of raw parsed CSV data
+  [ ] Zoom / pan on charts
+
+========================================================
